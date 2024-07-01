@@ -14,6 +14,20 @@ const checkRestaurantExists = async (value, { req }) => {
     return Promise.reject(new Error(err))
   }
 }
+
+const checkDate = async (value, { req }) => {
+  try {
+    const currentDate = new Date()
+    if (value < currentDate) {
+      return Promise.reject(new Error('The visible Until must be after today.'))
+    } else {
+      return Promise.resolve()
+    }
+  } catch (err) {
+    return Promise.reject(new Error(err))
+  }
+}
+
 const create = [
   check('name').exists().isString().isLength({ min: 1, max: 255 }).trim(),
   check('description').optional({ checkNull: true, checkFalsy: true }).isString().isLength({ min: 1 }).trim(),
@@ -23,6 +37,12 @@ const create = [
   check('productCategoryId').exists().isInt({ min: 1 }).toInt(),
   check('restaurantId').exists().isInt({ min: 1 }).toInt(),
   check('restaurantId').custom(checkRestaurantExists),
+  check('visibleUntil').optional({ nullable: true }).isDate().custom(checkDate),
+  check('availability').custom((value, { req }) => {
+    if (value === false && req.body.visibleUntil) {
+      return Promise.reject(new Error('Cannot set the availability and visibility at the same time.'))
+    } else { return Promise.resolve() }
+  }),
   check('image').custom((value, { req }) => {
     return checkFileIsImage(req, 'image')
   }).withMessage('Please upload an image with format (jpeg, png).'),
@@ -39,6 +59,12 @@ const update = [
   check('availability').optional().isBoolean().toBoolean(),
   check('productCategoryId').exists().isInt({ min: 1 }).toInt(),
   check('restaurantId').not().exists(),
+  check('visibleUntil').optional({ nullable: true }).isDate().toDate().custom(checkDate),
+  check('availability').custom((value, { req }) => {
+    if (value === false && req.body.visibleUntil) {
+      return Promise.reject(new Error('Cannot set the availability and visibility at the same time.'))
+    } else { return Promise.resolve() }
+  }),
   check('image').custom((value, { req }) => {
     return checkFileIsImage(req, 'image')
   }).withMessage('Please upload an image with format (jpeg, png).'),

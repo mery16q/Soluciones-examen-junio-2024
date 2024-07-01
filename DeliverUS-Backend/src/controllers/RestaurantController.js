@@ -1,3 +1,4 @@
+import { Sequelize } from 'sequelize'
 import { Restaurant, Product, RestaurantCategory, ProductCategory } from '../models/models.js'
 
 const index = async function (req, res) {
@@ -50,11 +51,15 @@ const create = async function (req, res) {
 const show = async function (req, res) {
   // Only returns PUBLIC information of restaurants
   try {
+    const currentDate = new Date()
     const restaurant = await Restaurant.findByPk(req.params.restaurantId, {
       attributes: { exclude: ['userId'] },
       include: [{
         model: Product,
         as: 'products',
+        where: {
+          visibleUntil: { [Sequelize.Op.or]: [{ [Sequelize.Op.eq]: null }, { [Sequelize.Op.gt]: currentDate }] }
+        },
         include: { model: ProductCategory, as: 'productCategory' }
       },
       {
